@@ -10,7 +10,7 @@ dp = Dispatcher(storage=MemoryStorage())
 bot = Bot(os.getenv("API_TOKEN"))
 
 async def on_startup():
-    print("Бот запущен")
+    print("Бот запущен")    
     
 async def on_shutdown():
     print('Бот выключен')
