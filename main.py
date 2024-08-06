@@ -6,6 +6,7 @@ import asyncio as asy
 import os
 
 load_dotenv()
+
 dp = Dispatcher(storage=MemoryStorage())
 bot = Bot(os.getenv("API_TOKEN"))
 

@@ -1,8 +1,10 @@
 from aiogram.fsm.state import State, StatesGroup
 
-class UserStates(StatesGroup):
-    authorization = State()
+class FormActions(StatesGroup):
     form_creation = State()
-    form_sending = State()
-
-
+    text_sending = State()
+    text_resending = State()
+    mail_resending = State()
+    mail_sending = State()
+    form_claiming = State()
+    category_choosing = State()

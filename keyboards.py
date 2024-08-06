@@ -51,12 +51,16 @@ class User_Keyboards():
         btn_solved = InlineKeyboardButton(text="Проблема решена", callback_data="cat_state=solved")
         btn_unsolved = InlineKeyboardButton(text="Требуется консультация", callback_data="cat_state=unsolved")
         btn_menu_return = InlineKeyboardButton(text="Назад в главное меню", callback_data="main_menu")
-        btn_categories_return = InlineKeyboardButton(text="Вернуться к категориям", callback_data="create_form")
+        btn_categories_return = InlineKeyboardButton(text="Изменить категорию", callback_data="create_form")
+        btn_mail_edit = InlineKeyboardButton(text="Изменить почту", callback_data="mail_edit")
+        btn_content_edit = InlineKeyboardButton(text="Изменить содержание", callback_data="content_edit")
+        btn_send_form = InlineKeyboardButton(text="Отправить заявку", callback_data="send_form")
+        btn_remove_form = InlineKeyboardButton(text="Отменить отправку", callback_data="main_menu")
         
         if is_ended == False:
             keyboard.add(btn_solved, btn_unsolved, btn_menu_return)
         else:
-            keyboard.add(btn_categories_return, btn_menu_return)
+            keyboard.add(btn_send_form, btn_content_edit, btn_mail_edit, btn_categories_return, btn_remove_form)
             
         keyboard.adjust(1, repeat=True)
         
