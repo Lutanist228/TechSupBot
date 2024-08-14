@@ -2,11 +2,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.exceptions import TelegramBadRequest
+import asyncio as asy
+import subprocess
 
 from states import *
 from objects import *
 from keyboards import *
 from functions import *
+
 
 cb_router = Router()
 
@@ -54,15 +57,26 @@ async def form_creation(callback: types.CallbackQuery, state: FSMContext):
                 
 @cb_router.callback_query(FormActions.form_claiming)
 async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
+    from DataStorage import DataStorage
+
+    
     data: dict = await state.get_data()
+    mail_sender = DataStorage.temp_data
     
     try:
         category_table = data["category_table"] 
         chosen_category = data["chosen_category"]
+        form_topic = chosen_category["Категории"]
     except KeyError: pass
     
     if callback.data == "send_form":
         # тут осуществляется отправка на почту
+        mail_sender.subject = form_topic
+        mail_sender.letter_text = f"""ID: {callback.from_user.id}\nОт: {data["printed_mail"]}\nСодержание: {data["printed_text"]}"""
+        
+        await mail_sender.create_message()
+        await mail_sender.send_email()
+        
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
         message = await callback.message.answer("Заявка успешно сформирована")
         await message_delition(message)

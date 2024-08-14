@@ -33,41 +33,62 @@ class DataTypeError():
         return print(error_message)
         
 class MailSender():
-    def __init__(self, receiver: str, sender: str, letter_text: str, password: str, subject: str = None) -> None:
+    def __init__(self, sender: str, password: str, receiver: str, subject: str = None, letter_text: str = None) -> None:
         self.sender = sender
         self.password = password 
         self.receiver = receiver 
         self.subject = subject
         self.letter_text = letter_text
+        self.port = None
         self.message = None
         self.server = None
         
-    def connect(self, port: int = 465, timeout: int = 10) -> smtplib.SMTP_SSL:
+    async def connect(self, port: int, timeout: int = 10) -> smtplib.SMTP_SSL:
+        conn_status = False
         try:
             server = smtplib.SMTP_SSL('smtp.yandex.com', port, timeout=timeout)
             server.login(self.sender, self.password)
             self.server = server
+            print("Произведено успешное подключение к почтовому клиенту.")
+            conn_status = True
         except Exception as e:
             print("Ошибка подключения -", e)
             print("Попытка повторного подключения к серверу...")
-            self.connect(port=port, timeout=timeout)
+            await self.connect(port=port, timeout=timeout)
+        self.port = port
         
-        return self
+        return self, conn_status
         
-    def close_connection(self):
+    async def close_connection(self):
         self.server.close()    
+        print("Успешное отключение от почтового клиента.")
         
-    def create_message(self) -> MIMEText:
+    async def create_message(self) -> MIMEText:
+        if self.server == None:
+            await self.connect(port=self.port)
+        
         message = (MIMEText(self.letter_text, "plain", "utf-8"))
         message["From"] = self.sender
         message["To"] = self.receiver
         message["Subject"] = Header(self.subject, "utf-8") # id телеграмма
         
         self.message = message
+        return self
     
-    def send_email(self) -> None:
-        self.server.sendmail(self.sender, self.receiver, self.message.as_string())
-        print(f"Письмо было успешно отправлено по адресу {self.receiver} от {self.sender}")
+    async def send_email(self) -> None:
+        if self.server == None:
+            await self.connect(port=self.port)
+        
+        try:
+            self.server.sendmail(self.sender, self.receiver, self.message.as_string())
+            print(f"Письмо было успешно отправлено по адресу {self.receiver} от {self.sender}")
+        except smtplib.SMTPServerDisconnected:
+            connection, status = await self.connect(port=self.port)
+            
+            while status == False:
+                connection, status = await self.connect(port=self.port)
+            else:
+                await self.send_email()
             
 class MailParser():
     def __init__(self, mail_login: str, mail_password: str) -> None:
@@ -75,7 +96,7 @@ class MailParser():
         self.mail_password = mail_password 
         self.server = None   
         
-    def connect(self, port: int = 993, timeout: int = 10) -> imaplib.IMAP4_SSL:
+    def connect(self, port: int, timeout: int = 10) -> imaplib.IMAP4_SSL:
         try:
             server = imaplib.IMAP4_SSL('imap.yandex.com', port, timeout=timeout)
             server.login(self.mail_login, self.mail_password)
