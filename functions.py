@@ -13,4 +13,3 @@ async def message_delition(*args, time_sleep = 20):
         await asy.sleep(time_sleep)
         for arg in args:
             await arg.delete()
-

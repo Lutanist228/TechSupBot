@@ -16,6 +16,7 @@ logs
 *.csv
 *.ttf
 *.env
+faq.json
 *.env.secret
 test.py
 *.drawio

@@ -15,16 +15,31 @@ async def main_menu_call(message: types.Message, state: FSMContext):
     
 @msg_router.message(FormActions.text_sending)
 async def text_capture(message: types.Message, state: FSMContext):
+    from DataStorage import DataStorage
+    await state.update_data(printed_text=message.text)
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
-    await state.update_data(printed_text=message.text)
-    menu = await menu.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указание  специального символа - '@'!""")
-    await state.update_data(menu=menu)    
-    await state.set_state(FormActions.mail_sending)
-    await message.delete()
+        
+    if data["chosen_category"] != "Обратная связь":
+        menu = await menu.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указание  специального символа - '@'!""")
+        await state.update_data(menu=menu)    
+        await state.set_state(FormActions.mail_sending)
+        await message.delete()
+    else:
+        mail_sender = DataStorage.temp_data
+        
+        mail_sender.subject = data["chosen_category"]
+        mail_sender.letter_text = f"""ID: {message.from_user.id}\n\nСодержание: {data["printed_text"]}"""
+        
+        await mail_sender.create_message()
+        await mail_sender.send_email()
+        await menu.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
+        message = await message.answer("Заявка успешно сформирована")
+        await message_delition(message)
+        await state.clear()
 
 @msg_router.message(FormActions.text_resending)
-async def form_claim(message: types.Message, state: FSMContext):
+async def text_recapture(message: types.Message, state: FSMContext):
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
     chosen_category = data["chosen_category"]
@@ -39,7 +54,7 @@ async def form_claim(message: types.Message, state: FSMContext):
     await state.set_state(FormActions.form_claiming)
     
 @msg_router.message(FormActions.mail_resending)
-async def form_claim(message: types.Message, state: FSMContext):
+async def mail_recapture(message: types.Message, state: FSMContext):
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
     chosen_category = data["chosen_category"]
@@ -54,7 +69,7 @@ async def form_claim(message: types.Message, state: FSMContext):
     await state.set_state(FormActions.form_claiming)
 
 @msg_router.message(FormActions.mail_sending)
-async def form_claim(message: types.Message, state: FSMContext):
+async def mail_capture(message: types.Message, state: FSMContext):
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
     chosen_category = data["chosen_category"]

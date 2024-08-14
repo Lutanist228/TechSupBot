@@ -1,4 +1,5 @@
 import csv
+import json
 import smtplib
 import imaplib
 from email.mime.multipart import MIMEMultipart
@@ -24,7 +25,10 @@ class DataParser():
                     for row in reader:
                         data.append(row)
                     return data
-        
+                case "json":
+                    data = json.load(file)
+                    return [data[row] for row in data]
+                    
 class DataTypeError():
     def __init__(self, error_message: str) -> None:
         self.raise_error(error_message)

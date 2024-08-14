@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 from objects import *
 
-# ----------------------------------------------U-S-E-R-T-P-A-N-E-L----------------------------------------------
+# ----------------------------------------------U-S-E-R-P-A-N-E-L----------------------------------------------
 class User_Keyboards():
     
     def main_menu() -> InlineKeyboardMarkup:
@@ -66,7 +66,12 @@ class User_Keyboards():
         
         return keyboard.as_markup()
     
-    
-
-# ----------------------------------------------U-S-E-R-T-P-A-N-E-L----------------------------------------------
+    def backing_to_menu() -> InlineKeyboardMarkup:
+        keyboard = InlineKeyboardBuilder()
+                
+        keyboard.add(InlineKeyboardButton(text="Назад в главное меню", callback_data="main_menu"))
+        keyboard.adjust(1, repeat=True)
+        
+        return keyboard.as_markup()
+# ----------------------------------------------U-S-E-R-P-A-N-E-L----------------------------------------------
 
