@@ -2,8 +2,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 
-from objects import *
-
 # ----------------------------------------------U-S-E-R-P-A-N-E-L----------------------------------------------
 class User_Keyboards():
     
@@ -21,6 +19,7 @@ class User_Keyboards():
         return keyboard.as_markup()
 
     async def categories(state: FSMContext) -> InlineKeyboardMarkup:
+        from objects import DataParser, DataTypeError
         keyboard = InlineKeyboardBuilder()
         buttons = list()
         categories = DataParser("categories.csv", "csv").read_info()

@@ -1,9 +1,6 @@
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F, types
-from aiogram.filters import Command
 from aiogram.exceptions import TelegramBadRequest
-import asyncio as asy
-import subprocess
 
 from states import *
 from objects import *
@@ -74,10 +71,12 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == "send_form":
         # тут осуществляется отправка на почту
         mail_sender.subject = form_topic
-        mail_sender.letter_text = f"""ID: {callback.from_user.id}\n\nОт: {data["printed_mail"]}\n\nСодержание: {data["printed_text"]}"""
+        mail_sender.letter_text = f"""ID: {callback.from_user.id}\nОт: {data["printed_mail"]}\n\nСодержание: {data["printed_text"]}"""
         
-        await mail_sender.create_message()
-        await mail_sender.send_email()
+        mail_sender.server = None
+        await mail_sender.create_message(callback)
+        mail_sender.server = None
+        await mail_sender.send_email(callback)
         
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
         message = await callback.message.answer("Заявка успешно сформирована")
@@ -92,7 +91,7 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     elif callback.data == "main_menu":
         await state.clear()
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
-    elif callback.data == "send_form":
+    elif callback.data == "create_form":
         await state.set_state(FormActions.category_choosing)
         await callback.message.edit_text(text="Выберете категорию заявки", reply_markup=await User_Keyboards.categories(state))
 

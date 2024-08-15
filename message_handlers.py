@@ -31,11 +31,12 @@ async def text_capture(message: types.Message, state: FSMContext):
         mail_sender.subject = data["chosen_category"]
         mail_sender.letter_text = f"""ID: {message.from_user.id}\n\nСодержание: {data["printed_text"]}"""
         
-        await mail_sender.create_message()
-        await mail_sender.send_email()
+        await mail_sender.create_message(message)
+        await mail_sender.send_email(message)
         await menu.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
-        message = await message.answer("Заявка успешно сформирована")
-        await message_delition(message)
+        bot_message = await message.answer("Обратная связь успешно отправлена!")
+        await message.delete()
+        await message_delition(bot_message)
         await state.clear()
 
 @msg_router.message(FormActions.text_resending)
