@@ -1,4 +1,4 @@
-from dotenv import load_dotenv, dotenv_values
+from dotenv import load_dotenv
 from aiogram import Bot
 from aiogram.dispatcher.dispatcher import Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -16,13 +16,13 @@ bot = Bot(os.getenv("API_TOKEN"))
 async def on_startup():
     from DataStorage import DataStorage
     global mail_sender
-    mail_sender, status = await MailSender(sender=os.getenv("BOT_MAIL"), receiver=os.getenv("SUPPORT_MAIL"),password=os.getenv("OUTER_PASSWORD")).connect(port=os.getenv("SMTP_PORT"))
+    mail_sender, status = await MailSender(sender=os.getenv("BOT_MAIL"), bot=bot, receiver=os.getenv("SUPPORT_MAIL"),password=os.getenv("OUTER_PASSWORD")).connect(port=os.getenv("SMTP_PORT"))
     DataStorage.temp_data = mail_sender
-    print("Бот запущен")    
+    print("Бот запущен.")    
     
 async def on_shutdown():
     await mail_sender.close_connection()
-    print('Бот выключен')
+    print('Бот выключен.')
 
 async def main():
     import message_handlers, callback_handlers

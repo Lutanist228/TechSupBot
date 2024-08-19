@@ -29,10 +29,10 @@ async def text_capture(message: types.Message, state: FSMContext):
         mail_sender = DataStorage.temp_data
         
         mail_sender.subject = data["chosen_category"]
-        mail_sender.letter_text = f"""ID: {message.from_user.id}\n\nСодержание: {data["printed_text"]}"""
+        mail_sender.letter_text = f"""ID пользователя: {message.from_user.id}\n\nСодержание: {data["printed_text"]}"""
         
-        await mail_sender.create_message(message)
-        await mail_sender.send_email(message)
+        await mail_sender.create_message()
+        await mail_sender.send_email(state, message)
         await menu.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
         bot_message = await message.answer("Обратная связь успешно отправлена!")
         await message.delete()
@@ -42,7 +42,9 @@ async def text_capture(message: types.Message, state: FSMContext):
 @msg_router.message(FormActions.text_resending)
 async def text_recapture(message: types.Message, state: FSMContext):
     data: dict = await state.get_data()
-    menu: types.CallbackQuery = data["menu"]
+    try:
+        menu: types.CallbackQuery = data["menu"]
+    except KeyError: pass
     chosen_category = data["chosen_category"]
     printed_mail = data["printed_mail"]
     printed_text = message.text
@@ -54,7 +56,7 @@ async def text_recapture(message: types.Message, state: FSMContext):
     await menu.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\n\nСодержание обращения: {printed_text}\n\nПочта отправителя: {printed_mail}""", reply_markup=User_Keyboards.category(True))
     await state.set_state(FormActions.form_claiming)
     
-@msg_router.message(FormActions.mail_resending)
+@msg_router.message(FormActions.mail_resending, F.text.contains("@"))
 async def mail_recapture(message: types.Message, state: FSMContext):
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
@@ -69,7 +71,7 @@ async def mail_recapture(message: types.Message, state: FSMContext):
     await menu.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\n\nСодержание обращения: {printed_text}\n\nПочта отправителя: {printed_mail}""", reply_markup=User_Keyboards.category(True))
     await state.set_state(FormActions.form_claiming)
 
-@msg_router.message(FormActions.mail_sending)
+@msg_router.message(FormActions.mail_sending, F.text.contains("@"))
 async def mail_capture(message: types.Message, state: FSMContext):
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
@@ -83,11 +85,7 @@ async def mail_capture(message: types.Message, state: FSMContext):
     await message.delete()
     await menu.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\n\nСодержание обращения: {printed_text}\n\nПочта отправителя: {printed_mail}""", reply_markup=User_Keyboards.category(True))
     await state.set_state(FormActions.form_claiming)
-    
-@msg_router.message(Command("create_file", ignore_mention=False))
-async def test_file_create(message: types.Message, state: FSMContext):
-    create_csv("categories.csv")
-
+        
 @msg_router.message(lambda x: x)
 async def spam_delete(message: types.Message):
     await message.delete()

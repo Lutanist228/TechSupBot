@@ -71,12 +71,10 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == "send_form":
         # тут осуществляется отправка на почту
         mail_sender.subject = form_topic
-        mail_sender.letter_text = f"""ID: {callback.from_user.id}\nОт: {data["printed_mail"]}\n\nСодержание: {data["printed_text"]}"""
+        mail_sender.letter_text = f"""ID пользователя: {callback.from_user.id}\nОт: {data["printed_mail"]}\n\nСодержание: {data["printed_text"]}"""
         
-        mail_sender.server = None
-        await mail_sender.create_message(callback)
-        mail_sender.server = None
-        await mail_sender.send_email(callback)
+        await mail_sender.create_message()
+        await mail_sender.send_email(state)
         
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
         message = await callback.message.answer("Заявка успешно сформирована")

@@ -11,9 +11,15 @@ from email.parser import Parser
 from email.policy import default
 from pprint import pprint
 from datetime import datetime as dt
+from dotenv import load_dotenv
+import os
+from aiogram import Bot
+from aiogram import exceptions
 
 from keyboards import *
 from functions import *
+
+load_dotenv()
 
 class DataParser():
     def __init__(self, path: str, format: str) -> None:
@@ -43,12 +49,13 @@ class DataTypeError():
         
 class MailSender():
     
-    def __init__(self, sender: str, password: str, receiver: str, subject: str = None, letter_text: str = None) -> None:
+    def __init__(self, sender: str, password: str, receiver: str, bot: Bot,  subject: str = None, letter_text: str = None) -> None:
         self.sender = sender
         self.password = password 
         self.receiver = receiver 
         self.subject = subject
         self.letter_text = letter_text
+        self.bot = bot
         self.port = None
         self.message = None
         self.server = None
@@ -56,6 +63,7 @@ class MailSender():
         
     async def connect(self, port: int, timeout: int = 10) -> smtplib.SMTP_SSL:
         conn_status = False
+        
         try:
             server = smtplib.SMTP_SSL('smtp.yandex.com', port, timeout=timeout)
             server.ehlo()
@@ -73,18 +81,21 @@ class MailSender():
             print("Попытка повторного подключения к серверу...")
             self.error_report.update([("SMTPServerDisconnected", err)])
             await self.connect(port=port, timeout=timeout)
+        except Exception as exeption: 
+            print("Произошла неизвестная ошибка: ", exeption) 
+            print("Попытка повторного подключения к серверу...")
+            self.error_report.update([("UnknownExeption", exeption)])
+            await self.connect(port=port, timeout=timeout)
             
         self.port = port
-        
         return self, conn_status
         
     async def close_connection(self):
         self.server.close()    
         print("Успешное отключение от почтового клиента.")
         
-    async def create_message(self, message) -> MIMEText:
-        await self.__reconnecting(message=message)
-        
+    async def create_message(self) -> MIMEText:
+
         message = (MIMEText(self.letter_text, "plain", "utf-8"))
         message["From"] = self.sender
         message["To"] = self.receiver
@@ -93,8 +104,8 @@ class MailSender():
         self.message = message
         return self
     
-    async def send_email(self, message) -> None:
-        await self.__reconnecting(message=message)
+    async def send_email(self, state: FSMContext, message: types.Message = None) -> None:
+        await self.__reconnecting(message=message, state=state)
         
         try:
             self.server.sendmail(self.sender, self.receiver, self.message.as_string())
@@ -102,33 +113,41 @@ class MailSender():
         except smtplib.SMTPServerDisconnected:
             await self.connect(port=self.port)
             print(f"Повторная отправка письма...")
-            await self.send_email(message)
+            await self.send_email(state)
         except smtplib.SMTPDataError: 
             print(f"Письмо было отложено на 30 секунд из-за подозрений в спаме.")
             await asy.sleep(30)
             print(f"Повторная отправка письма...")
-            await self.send_email(message)
+            await self.send_email(state)
             
-    async def __reconnecting(self, message) -> None:
+    async def __reconnecting(self, message: types.Message, state: FSMContext) -> None:
         attempts = 0
+        data: dict = await state.get_data()
+        try:
+            menu: types.CallbackQuery = data["menu"]
+        except KeyError: pass
         
         while self.server == None:
-            attempts += 1
-            print(f"Попытка подключения №{attempts}...")
-            status = await self.connect(port=self.port)
-            
             if attempts == 5:
                 print("Сервер отказал в подключении.")
+                MODERATOR_ID = os.getenv("MODERATOR_ID")
                 
-                if isinstance(message, types.CallbackQuery): 
-                    await message.message.edit_text(text="Произошла ошибка при отправки вашей заявки на почту технической поддержки. Просим сообщить об ошибке модератору чат-бота (https://t.me/lutanist228) и повторить отправку позже.", reply_markup=User_Keyboards.backing_to_menu())
-                else:
-                    await message.edit_text(text="Произошла ошибка при отправки вашей заявки на почту технической поддержки. Просим сообщить об ошибке модератору чат-бота (https://t.me/lutanist228) и повторить отправку позже.", reply_markup=User_Keyboards.backing_to_menu())
+                await self.bot.send_message(chat_id=MODERATOR_ID, text=f"{"-"*50}\n\nПроизошла критическая ошибка подключения к серверу от {dt.now()}.")
+                for item in self.error_report.items():
+                    await self.bot.send_message(chat_id=MODERATOR_ID, text=f"{item[0]}: {item[1]}")     
                 
-                save_to_txt(self.error_report, file_path=f"logs\error_report#{dt.now()}", print_as_finished=False, save_mode="w")
+                try:
+                    await menu.edit_text(text="Произошла ошибка при отправке вашей заявки на почту технической поддержки. Сообщение об ошибке было направлено модератору чат-бота. Просим вас повторить отправку позже.", reply_markup=User_Keyboards.backing_to_menu())   
+                    await message.delete() if message != None else ...
+                except exceptions.TelegramBadRequest: pass
+                
+            attempts += 1
+            print(f"Попытка подключения №{attempts}...")
+            server_obj, status = await self.connect(port=self.port)
+        
         else:
             print(f"Успешное переподключение к серверу...")
-                      
+              
 class MailParser():
     def __init__(self, mail_login: str, mail_password: str) -> None:
         self.mail_login = mail_login

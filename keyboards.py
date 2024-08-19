@@ -36,7 +36,7 @@ class User_Keyboards():
         
         for row in categories:
             row: dict
-            buttons.append(InlineKeyboardButton(text=f"{row.get("Категории")}", callback_data=f"cat_id={row.get("id")}"))
+            buttons.append(InlineKeyboardButton(text=f"{row.get('Категории')}", callback_data=f"cat_id={row.get('id')}"))
         buttons.append(btn_menu_return)   
          
         keyboard.add(*buttons)
