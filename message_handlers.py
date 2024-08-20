@@ -21,7 +21,7 @@ async def text_capture(message: types.Message, state: FSMContext):
     menu: types.CallbackQuery = data["menu"]
         
     if data["chosen_category"] != "Обратная связь":
-        menu = await menu.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указание  специального символа - '@'!""")
+        menu = await menu.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указанием специального символа - '@'!""")
         await state.update_data(menu=menu)    
         await state.set_state(FormActions.mail_sending)
         await message.delete()

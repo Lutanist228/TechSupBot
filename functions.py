@@ -33,3 +33,18 @@ def save_to_txt(file_path: str = "", print_as_finished = True, save_mode: str = 
             if print_as_finished == True:
                 print("\n")
                 print(f"The information has been added to the {file_name}.txt file.")
+                           
+def parse_faq(json_info = None, multiplier: int = 0) -> str:
+    from objects import DataParser
+    
+    msg_text = ""
+    
+    if json_info == None:
+        json_parser = DataParser("faq.json", "json")
+        json_info = json_parser.read_info()
+    
+    for number, row in enumerate(json_info):
+        question, answer = f"question_{number + multiplier + 1}", f"answer_{number + multiplier + 1}"
+        msg_text += f"{row[question]}\n{row[answer]}\n\n" 
+    
+    return json_info, msg_text

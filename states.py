@@ -8,3 +8,6 @@ class FormActions(StatesGroup):
     mail_sending = State()
     form_claiming = State()
     category_choosing = State()
+
+class FaqActions(StatesGroup):
+    surfing_faq = State()

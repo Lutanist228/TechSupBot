@@ -105,7 +105,8 @@ class MailSender():
         return self
     
     async def send_email(self, state: FSMContext, message: types.Message = None) -> None:
-        await self.__reconnecting(message=message, state=state)
+        if self.server == None:
+            await self.__reconnecting(message=message, state=state)
         
         try:
             self.server.sendmail(self.sender, self.receiver, self.message.as_string())
@@ -132,7 +133,7 @@ class MailSender():
                 print("Сервер отказал в подключении.")
                 MODERATOR_ID = os.getenv("MODERATOR_ID")
                 
-                await self.bot.send_message(chat_id=MODERATOR_ID, text=f"{"-"*50}\n\nПроизошла критическая ошибка подключения к серверу от {dt.now()}.")
+                await self.bot.send_message(chat_id=MODERATOR_ID, text=f"{'-'*50}\n\nПроизошла критическая ошибка подключения к серверу от {dt.now()}.")
                 for item in self.error_report.items():
                     await self.bot.send_message(chat_id=MODERATOR_ID, text=f"{item[0]}: {item[1]}")     
                 

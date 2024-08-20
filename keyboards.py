@@ -72,5 +72,26 @@ class User_Keyboards():
         keyboard.adjust(1, repeat=True)
         
         return keyboard.as_markup()
+    
+    def surfing_faq(max_page: int = 0, exeption_raised: bool = False, page_num: int = 1) -> InlineKeyboardMarkup:
+        keyboard = InlineKeyboardBuilder()
+        max_page += 1
+        
+        btn_forward = InlineKeyboardButton(text="Следующая страница", callback_data=f"faq_next:{page_num + 1}")
+        btn_back = InlineKeyboardButton(text="Предыдущая страница", callback_data=f"faq_prev:{page_num - 1}")
+        btn_menu_return = InlineKeyboardButton(text="Назад в главное меню", callback_data="main_menu:0")
+        
+        if exeption_raised == True and page_num == 1:
+            keyboard.add(btn_forward, btn_menu_return)
+        elif exeption_raised == True and page_num == max_page:
+            keyboard.add(btn_back, btn_menu_return)
+        elif exeption_raised == True and page_num > 1:
+            keyboard.add(btn_forward, btn_back, btn_menu_return)
+        else:
+            keyboard.add(btn_menu_return)
+        
+        keyboard.adjust(1, repeat=True)
+        return keyboard.as_markup()
+        
 # ----------------------------------------------U-S-E-R-P-A-N-E-L----------------------------------------------
 

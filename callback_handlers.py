@@ -76,15 +76,15 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
         await mail_sender.create_message()
         await mail_sender.send_email(state)
         
+        await state.clear()
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
         message = await callback.message.answer("Заявка успешно сформирована")
         await message_delition(message)
-        await state.clear()
     elif callback.data == "content_edit":
         await callback.message.edit_text(text=f"""Тема Вашего обращения: {chosen_category["Категории"]}\n\nСформируйте текстовое обращение по указанной Вами проблеме и отправьте его в чат с ботом""")        
         await state.set_state(FormActions.text_resending)
     elif callback.data == "mail_edit":
-        await callback.message.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указание  специального символа - '@'!""")
+        await callback.message.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указанием специального символа - '@'!""")
         await state.set_state(FormActions.mail_resending)
     elif callback.data == "main_menu":
         await state.clear()
@@ -93,13 +93,45 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
         await state.set_state(FormActions.category_choosing)
         await callback.message.edit_text(text="Выберете категорию заявки", reply_markup=await User_Keyboards.categories(state))
 
+@cb_router.callback_query(FaqActions.surfing_faq)
+async def surfing_faq(callback: types.CallbackQuery, state: FSMContext):
+    data: dict = await state.get_data()
+    op_type, current_page = callback.data.split(":") ; current_page = int(current_page)
+    pages: int = data["pages"]; ITEMS_PER_PAGE = 10
+    remaining_faq: dict = data["remaining_faq"]
+    full_faq: dict = data["full_faq"]
+    
+    async def form_faq(msg_text: str, reassign_remaining: bool = True): 
+        nonlocal pages
+        nonlocal ITEMS_PER_PAGE
+        
+        await state.update_data(remaining_faq=remaining_faq[ITEMS_PER_PAGE:]) if reassign_remaining == True else ...
+        await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.surfing_faq(max_page=pages, exeption_raised=True, page_num=current_page))
+    
+    if op_type == "faq_next":
+        try:
+            current_faq, msg_text = parse_faq(json_info=remaining_faq[:ITEMS_PER_PAGE], multiplier=10 * (current_page - 1))
+            await form_faq(msg_text)
+        except IndexError:
+            index = len(remaining_faq)
+            current_faq, msg_text = parse_faq(json_info=remaining_faq[:index], multiplier=10 * (current_page - 1))
+            await form_faq(msg_text, False)
+    elif op_type == "faq_prev":
+        current_faq, msg_text = parse_faq(json_info=full_faq[(current_page - 1) * ITEMS_PER_PAGE:((current_page - 1) * ITEMS_PER_PAGE) + 10], multiplier=10 * (current_page - 1)) 
+        remaining_faq = full_faq[current_page * ITEMS_PER_PAGE:]
+        await state.update_data(remaining_faq=remaining_faq)
+        await form_faq(msg_text, False)
+    elif op_type == "main_menu":
+        await state.clear()
+        await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
+    
 @cb_router.callback_query()
 async def define_processes(callback: types.CallbackQuery, state: FSMContext):
     process = callback.data
     data: dict = await state.get_data()
-
+    
     match process:
-        case "main_menu":
+        case "main_menu:0":
             await state.clear()
             await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
         case "create_form":
@@ -109,18 +141,28 @@ async def define_processes(callback: types.CallbackQuery, state: FSMContext):
             message = await callback.message.answer(text="Ваша ссылка на материалы блока 'Информация' - <<ссылка>>")
             await message_delition(message, time_sleep=1800) # сообщения-уведомления удаляются каждые 30 минут
         case "faq_block":
-            msg_text = ""
-            json_parser = DataParser("faq.json", "json")
-            json_info = json_parser.read_info()
+            full_faq, msg_text = parse_faq()
+            ITEMS_PER_PAGE = 10
+            pages: int = len(full_faq) // ITEMS_PER_PAGE
             
-            for number, row in enumerate(json_info):
-                question, answer = f"question_{number + 1}", f"answer_{number + 1}"
-                msg_text += f"{row[question]}\n{row[answer]}\n\n"
+            async def form_faq(): 
+                nonlocal msg_text
+                nonlocal pages
+                nonlocal ITEMS_PER_PAGE
                 
-            await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.backing_to_menu())
+                try:
+                    await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.surfing_faq())
+                except TelegramBadRequest:
+                    await state.set_state(FaqActions.surfing_faq)
+                    await state.update_data(full_faq=full_faq, pages=pages)
+                    current_faq, msg_text = parse_faq(json_info=full_faq[:ITEMS_PER_PAGE])
+                    await state.update_data(remaining_faq=full_faq[ITEMS_PER_PAGE:])
+                    await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.surfing_faq(exeption_raised=True))
+                    
+            await form_faq()
         case "feedback_block":
             await state.set_state(FormActions.text_sending)
             await state.update_data(chosen_category="Обратная связь")
             menu = await callback.message.edit_text(text=f"""Тема Вашего обращения: Обратная связь\n\nСформируйте текстовое обращение для обратной связи и отправьте его в чат с ботом""")
             await state.update_data(menu=menu)
-         
+        
