@@ -8,6 +8,8 @@ from keyboards import *
 
 msg_router = Router()
 
+
+
 @msg_router.message(Command("start", ignore_mention=False))
 async def main_menu_call(message: types.Message, state: FSMContext):
     await state.clear()
@@ -21,9 +23,9 @@ async def text_capture(message: types.Message, state: FSMContext):
     menu: types.CallbackQuery = data["menu"]
         
     if data["chosen_category"] != "Обратная связь":
-        menu = await menu.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указанием специального символа - '@'!""")
-        await state.update_data(menu=menu)    
-        await state.set_state(FormActions.mail_sending)
+        menu = await menu.edit_text(text=f"Укажите Ваше ФИО. Просим отправить ФИО одним сообщением")
+        await state.update_data(menu=menu)
+        await state.set_state(FormActions.fio_sending)
         await message.delete()
     else:
         mail_sender = DataStorage.temp_data
@@ -41,50 +43,92 @@ async def text_capture(message: types.Message, state: FSMContext):
 
 @msg_router.message(FormActions.text_resending)
 async def text_recapture(message: types.Message, state: FSMContext):
+    await state.update_data(printed_text=message.text)
     data: dict = await state.get_data()
     try:
         menu: types.CallbackQuery = data["menu"]
     except KeyError: pass
-    chosen_category = data["chosen_category"]
-    printed_mail = data["printed_mail"]
-    printed_text = message.text
-    form_topic = chosen_category["Категории"]
-        
-    await state.update_data(printed_text=printed_text)
-        
-    await message.delete()
-    await menu.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\n\nСодержание обращения: {printed_text}\n\nПочта отправителя: {printed_mail}""", reply_markup=User_Keyboards.category(True))
-    await state.set_state(FormActions.form_claiming)
     
-@msg_router.message(FormActions.mail_resending, F.text.contains("@"))
-async def mail_recapture(message: types.Message, state: FSMContext):
+    await form_displaying(data, menu, state, message)
+    
+@msg_router.message(FormActions.fio_sending)
+async def fio_capture(message: types.Message, state: FSMContext):
+    await state.update_data(user_fio=message.text)
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
-    chosen_category = data["chosen_category"]
-    printed_mail = message.text
-    printed_text = data["printed_text"]
-    form_topic = chosen_category["Категории"]
-        
-    await state.update_data(printed_mail=printed_mail)
-        
+    
+    menu = await menu.edit_text(text=f"Укажите наименование Вашей программы обучения")
+    await state.update_data(menu=menu)
+    await state.set_state(FormActions.program_sending)
     await message.delete()
-    await menu.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\n\nСодержание обращения: {printed_text}\n\nПочта отправителя: {printed_mail}""", reply_markup=User_Keyboards.category(True))
-    await state.set_state(FormActions.form_claiming)
+    
+@msg_router.message(FormActions.fio_resending)
+async def fio_recapture(message: types.Message, state: FSMContext):
+    await state.update_data(user_fio=message.text)
+    data: dict = await state.get_data()
+    try:
+        menu: types.CallbackQuery = data["menu"]
+    except KeyError: pass
+    
+    await form_displaying(data, menu, state, message)
+    
+@msg_router.message(FormActions.program_sending)
+async def program_capture(message: types.Message, state: FSMContext):
+    await state.update_data(user_program=message.text)
+    data: dict = await state.get_data()
+    menu: types.CallbackQuery = data["menu"]
+    
+    menu = await menu.edit_text(text=f"Укажите Вашу группу, если знаете номер")
+    await state.update_data(menu=menu)
+    await state.set_state(FormActions.group_sending)
+    await message.delete()
+
+@msg_router.message(FormActions.program_resending)
+async def program_recapture(message: types.Message, state: FSMContext):
+    await state.update_data(user_program=message.text)
+    data: dict = await state.get_data()
+    try:
+        menu: types.CallbackQuery = data["menu"]
+    except KeyError: pass
+    
+    await form_displaying(data, menu, state, message)
+
+@msg_router.message(FormActions.group_sending)
+async def group_capture(message: types.Message, state: FSMContext):
+    await state.update_data(user_group=message.text)
+    data: dict = await state.get_data()
+    menu: types.CallbackQuery = data["menu"]
+    
+    menu = await menu.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указанием специального символа - '@'!""")
+    await state.update_data(menu=menu)    
+    await state.set_state(FormActions.mail_sending)
+    await message.delete()
+
+@msg_router.message(FormActions.group_resending)
+async def group_recapture(message: types.Message, state: FSMContext):
+    await state.update_data(user_group=message.text)
+    data: dict = await state.get_data()
+    try:
+        menu: types.CallbackQuery = data["menu"]
+    except KeyError: pass
+    
+    await form_displaying(data, menu, state, message)
+
+@msg_router.message(FormActions.mail_resending, F.text.contains("@"))
+async def mail_recapture(message: types.Message, state: FSMContext):
+    await state.update_data(printed_mail=message.text)
+    data: dict = await state.get_data()
+    menu: types.CallbackQuery = data["menu"]
+    
+    await form_displaying(data, menu, state, message)
 
 @msg_router.message(FormActions.mail_sending, F.text.contains("@"))
 async def mail_capture(message: types.Message, state: FSMContext):
+    await state.update_data(printed_mail=message.text)
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
-    chosen_category = data["chosen_category"]
-    printed_mail = message.text
-    printed_text = data["printed_text"]
-    form_topic = chosen_category["Категории"]
     
-    await state.update_data(printed_mail=printed_mail)
-        
-    await message.delete()
-    await menu.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\n\nСодержание обращения: {printed_text}\n\nПочта отправителя: {printed_mail}""", reply_markup=User_Keyboards.category(True))
-    await state.set_state(FormActions.form_claiming)
+    await form_displaying(data, menu, state, message)
         
 @msg_router.message(lambda x: x)
 async def spam_delete(message: types.Message):

@@ -64,21 +64,20 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     
     try:
         category_table = data["category_table"] 
-        chosen_category = data["chosen_category"]
-        form_topic = chosen_category["Категории"]
+        chosen_category = data["chosen_category"] ; form_topic = chosen_category["Категории"]
     except KeyError: pass
     
     if callback.data == "send_form":
         # тут осуществляется отправка на почту
         mail_sender.subject = form_topic
-        mail_sender.letter_text = f"""ID пользователя: {callback.from_user.id}\nОт: {data["printed_mail"]}\n\nСодержание: {data["printed_text"]}"""
+        mail_sender.letter_text = f"""ID пользователя: {callback.from_user.id}\nФИО пользователя: {data["user_fio"]}\nПочта пользователя: {data["printed_mail"]}\nПрограмма и группа пользователя: {data["user_program"]} / {data["user_group"]}\n\nСодержание: {data["printed_text"]}"""
         
         await mail_sender.create_message()
         await mail_sender.send_email(state)
         
         await state.clear()
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
-        message = await callback.message.answer("Заявка успешно сформирована")
+        message = await callback.message.answer("Заявка успешно сформирована. Ожидайте ответ на указанный e-mail")
         await message_delition(message)
     elif callback.data == "content_edit":
         await callback.message.edit_text(text=f"""Тема Вашего обращения: {chosen_category["Категории"]}\n\nСформируйте текстовое обращение по указанной Вами проблеме и отправьте его в чат с ботом""")        
@@ -86,6 +85,15 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     elif callback.data == "mail_edit":
         await callback.message.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указанием специального символа - '@'!""")
         await state.set_state(FormActions.mail_resending)
+    elif callback.data == "program_edit":
+        await callback.message.edit_text(text=f"""Укажите наименование Вашей программы обучения""")
+        await state.set_state(FormActions.program_resending)
+    elif callback.data == "group_edit":
+        await callback.message.edit_text(text=f"""Укажите Вашу группу, если знаете номер""")
+        await state.set_state(FormActions.group_resending)
+    elif callback.data == "fio_edit":
+        await callback.message.edit_text(text=f"""Укажите Ваше ФИО. Просим отправить ФИО одним сообщением""")
+        await state.set_state(FormActions.fio_resending)
     elif callback.data == "main_menu":
         await state.clear()
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())

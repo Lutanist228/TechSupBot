@@ -110,7 +110,7 @@ class MailSender():
         
         try:
             self.server.sendmail(self.sender, self.receiver, self.message.as_string())
-            print(f"Письмо было успешно отправлено по адресу {self.receiver} от {self.sender}")
+            print(f"Письмо было успешно отправлено по адресу {self.receiver} от {self.sender}.")
         except smtplib.SMTPServerDisconnected:
             await self.connect(port=self.port)
             print(f"Повторная отправка письма...")

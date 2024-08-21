@@ -6,6 +6,12 @@ class FormActions(StatesGroup):
     text_resending = State()
     mail_resending = State()
     mail_sending = State()
+    fio_sending = State()
+    fio_resending = State()
+    program_sending = State()
+    program_resending = State()
+    group_sending = State()
+    group_resending = State()
     form_claiming = State()
     category_choosing = State()
 
