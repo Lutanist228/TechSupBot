@@ -64,7 +64,7 @@ class User_Keyboards():
             
         return keyboard.as_markup()
     
-    def form_edit() -> InlineKeyboardMarkup:
+    def form_edit(is_photo: bool = False) -> InlineKeyboardMarkup:
         keyboard = InlineKeyboardBuilder()
         
         btn_categories_return = InlineKeyboardButton(text="Изменить категорию", callback_data="category_edit")
@@ -74,9 +74,14 @@ class User_Keyboards():
         btn_group_edit = InlineKeyboardButton(text="Изменить группу", callback_data="group_edit")
         btn_fio_edit = InlineKeyboardButton(text="Изменить ФИО", callback_data="fio_edit")
         btn_back_to_form = InlineKeyboardButton(text="Вернуться к заявке", callback_data="return_to_form")
+        btn_claim_attachements = InlineKeyboardButton(text="Прикрепить фото", callback_data="attach_photos")
         
-        keyboard.add(btn_content_edit, btn_fio_edit, btn_program_edit, btn_group_edit, btn_mail_edit, btn_categories_return, btn_back_to_form)
-        keyboard.adjust(2, repeat=True)
+        if is_photo == False:
+            keyboard.add(btn_content_edit, btn_fio_edit, btn_program_edit, btn_group_edit, btn_mail_edit, btn_categories_return, btn_back_to_form)
+            keyboard.adjust(2, repeat=True)
+        else:
+            keyboard.add(btn_claim_attachements, btn_back_to_form)
+            keyboard.adjust(1, repeat=True)
         
         return keyboard.as_markup()
     

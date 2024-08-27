@@ -69,3 +69,21 @@ async def form_displaying(data: dict,state: FSMContext, message: types.Message, 
         await message.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\nПочта отправителя: {printed_mail}\nФИО отправителя: {user_fio}\nПрограмма обучения: {educ_program}\nГруппа: {educ_group}\nСодержание обращения: {printed_text}""", reply_markup=User_Keyboards.category(True))
     
     await state.set_state(FormActions.form_claiming)
+
+def limit_checker(func):
+    async def wrapper(*args, **kwargs):
+        state: FSMContext = kwargs['state']
+        data: dict = await state.get_data()
+        message: types.Message = args[0]
+        
+        try:
+            if len(data["media_group_msg"]) >= 3:
+                msg = await message.answer(text="Вы достигли лимита для прикрепления фотографий")
+                await message.delete()
+                return await message_delition(msg, time_sleep=5)
+            else:
+                return await func(message, state)
+        except KeyError:
+            return await func(message, state)
+        
+    return wrapper

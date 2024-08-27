@@ -58,7 +58,7 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     from DataStorage import DataStorage
 
     data: dict = await state.get_data()
-    mail_sender = DataStorage.temp_data
+    mail_sender = DataStorage.temp_data_1
     
     try:
         category_table = data["category_table"] 
@@ -66,7 +66,11 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     except KeyError: pass
     
     if callback.data == "send_form":
-        # тут осуществляется отправка на почту
+        DataStorage.temp_data_2 = None
+        try:
+            [await elem.delete() for elem in data["media_group_msg"]]
+        except KeyError: pass
+        
         mail_sender.subject = form_topic
         mail_sender.letter_text = f"""ID пользователя: {callback.from_user.id}\nФИО пользователя: {data["user_fio"]}\nПочта пользователя: {data["printed_mail"]}\nПрограмма и группа пользователя: {data["user_program"]} / {data["user_group"]}\n\nСодержание: {data["printed_text"]}"""
         
@@ -77,10 +81,27 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
         message = await callback.message.answer("Заявка успешно сформирована. Ожидайте ответ на указанный e-mail")
         await message_delition(message)
+    elif callback.data == "attach_photo":
+        DataStorage.temp_data_2 = None
+        try:
+            [await elem.delete() for elem in data["media_group_msg"]]
+        except KeyError: pass
+        
+        await state.update_data(media_group_msg=[])
+        await state.set_state(FormActions.photo_sending)
+        menu: types.CallbackQuery = await callback.message.edit_text(text="Отправьте скриншот(-ы) вашей проблемы. Вы можете прикрепить до 3-х фото к вашей заявке.\nДля завершения операции нажмите - 'Прикрепить фото'.\nДля отмены операции нажмите - 'Вернуться к заявке'", reply_markup=User_Keyboards.form_edit(True))
+        await state.update_data(menu=menu)
     elif callback.data == "edit_form":
         await state.set_state(FormActions.form_editing)
         await callback.message.edit_text(text="Выберете, какую часть заявки необходимо отредактировать", reply_markup=User_Keyboards.form_edit())
     elif callback.data == "main_menu":
+        DataStorage.temp_data_2 = None
+        try:
+            [await elem.delete() for elem in data["media_group_msg"]]
+        except KeyError: pass
+        
+        await state.update_data(media_group_msg=[])
+        
         await state.clear()
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
     
@@ -148,6 +169,23 @@ async def surfing_faq(callback: types.CallbackQuery, state: FSMContext):
         await state.clear()
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
     
+@cb_router.callback_query(FormActions.photo_sending)
+async def photo_operations(callback: types.CallbackQuery, state: FSMContext):
+    from DataStorage import DataStorage
+    data: dict = await state.get_data()
+    
+    if callback.data == "return_to_form":
+        [await elem.delete() for elem in data["media_group_msg"]]
+        DataStorage.temp_data_2 = None
+        await state.update_data(media_group_msg=[])
+        
+        await state.set_state(FormActions.form_claiming)
+        await form_displaying(data=data, state=state, message=callback.message)
+    elif callback.data == "attach_photos":
+        await data["media_group_msg"][0].edit_caption(caption="Фотографии, прикреплённые к заявке")
+        await state.set_state(FormActions.form_claiming)
+        await form_displaying(data=data, state=state, message=callback.message)
+        
 @cb_router.callback_query()
 async def define_processes(callback: types.CallbackQuery, state: FSMContext):
     process = callback.data

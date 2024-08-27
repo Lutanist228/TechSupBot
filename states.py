@@ -15,6 +15,7 @@ class FormActions(StatesGroup):
     form_claiming = State()
     form_editing = State()
     category_choosing = State()
+    photo_sending = State()
 
 class FaqActions(StatesGroup):
     surfing_faq = State()
