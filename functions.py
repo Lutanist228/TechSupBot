@@ -54,7 +54,7 @@ def parse_faq(json_info = None, multiplier: int = 0) -> str:
     
     return json_info, msg_text
 
-async def form_displaying(data: dict, menu: types.CallbackQuery, state: FSMContext, message: types.Message):
+async def form_displaying(data: dict,state: FSMContext, message: types.Message, menu: types.CallbackQuery = None):
     chosen_category = data["chosen_category"] ; form_topic = chosen_category["Категории"]
     printed_mail = data["printed_mail"]
     printed_text = data["printed_text"]
@@ -62,6 +62,10 @@ async def form_displaying(data: dict, menu: types.CallbackQuery, state: FSMConte
     educ_program = data["user_program"]
     educ_group = data["user_group"]
     
-    await message.delete()
-    await menu.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\nПочта отправителя: {printed_mail}\nФИО отправителя: {user_fio}\nПрограмма обучения: {educ_program}\nГруппа: {educ_group}\nСодержание обращения: {printed_text}""", reply_markup=User_Keyboards.category(True))
+    if menu is not None:
+        await message.delete()
+        await menu.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\nПочта отправителя: {printed_mail}\nФИО отправителя: {user_fio}\nПрограмма обучения: {educ_program}\nГруппа: {educ_group}\nСодержание обращения: {printed_text}""", reply_markup=User_Keyboards.category(True))
+    else:
+        await message.edit_text(text=f"""Проверьте, пожалуйста, введенные Вами данные.\n\nТема обращения: {form_topic}\nПочта отправителя: {printed_mail}\nФИО отправителя: {user_fio}\nПрограмма обучения: {educ_program}\nГруппа: {educ_group}\nСодержание обращения: {printed_text}""", reply_markup=User_Keyboards.category(True))
+    
     await state.set_state(FormActions.form_claiming)

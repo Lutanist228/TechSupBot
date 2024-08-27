@@ -45,15 +45,13 @@ async def form_creation(callback: types.CallbackQuery, state: FSMContext):
         match category_id:
             case 1: 
                 await state.update_data(chosen_category=category_table[category_id - 1])
-                await callback.message.edit_text(text="""Проверьте, пожалуйста, регистр и язык ввода логина и пароля. Требуется ли консультация специалиста или проблема решена?""", reply_markup=User_Keyboards.category())
-            case 2:
+                await callback.message.edit_text(text="""Проверьте, пожалуйста, регистр и язык ввода логина и пароля.\n\nТребуется ли консультация специалиста или проблема решена?""", reply_markup=User_Keyboards.category())
+            case 2 | 5: 
+                await state.update_data(chosen_category=category_table[category_id - 1])
+                await callback.message.edit_text(text="""Проверьте программу, на которую Вы записаны, возможно, этот раздел не входит в рамки обучения.\n\nТребуется ли консультация специалиста или проблема решена?""", reply_markup=User_Keyboards.category())
+            case 3 | 4:
                 await state.update_data(chosen_category=category_table[category_id - 1])
                 await callback.message.edit_text(text="""Требуется ли консультация специалиста или проблема решена?""", reply_markup=User_Keyboards.category())
-            case 3: 
-                await state.update_data(chosen_category=category_table[category_id - 1])
-                await callback.message.edit_text(text="""Проверьте программу, на которую Вы записаны, возможно, этот раздел не входит в рамки обучения. Требуется ли консультация специалиста или проблема решена?""", reply_markup=User_Keyboards.category())
-            case 4: pass
-            case 5: pass
                 
 @cb_router.callback_query(FormActions.form_claiming)
 async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
@@ -79,27 +77,44 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
         message = await callback.message.answer("Заявка успешно сформирована. Ожидайте ответ на указанный e-mail")
         await message_delition(message)
-    elif callback.data == "content_edit":
-        await callback.message.edit_text(text=f"""Тема Вашего обращения: {chosen_category["Категории"]}\n\nСформируйте текстовое обращение по указанной Вами проблеме и отправьте его в чат с ботом""")        
-        await state.set_state(FormActions.text_resending)
-    elif callback.data == "mail_edit":
-        await callback.message.edit_text(text=f"""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указанием специального символа - '@'!""")
-        await state.set_state(FormActions.mail_resending)
-    elif callback.data == "program_edit":
-        await callback.message.edit_text(text=f"""Укажите наименование Вашей программы обучения""")
-        await state.set_state(FormActions.program_resending)
-    elif callback.data == "group_edit":
-        await callback.message.edit_text(text=f"""Укажите Вашу группу, если знаете номер""")
-        await state.set_state(FormActions.group_resending)
-    elif callback.data == "fio_edit":
-        await callback.message.edit_text(text=f"""Укажите Ваше ФИО. Просим отправить ФИО одним сообщением""")
-        await state.set_state(FormActions.fio_resending)
+    elif callback.data == "edit_form":
+        await state.set_state(FormActions.form_editing)
+        await callback.message.edit_text(text="Выберете, какую часть заявки необходимо отредактировать", reply_markup=User_Keyboards.form_edit())
     elif callback.data == "main_menu":
         await state.clear()
         await callback.message.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
-    elif callback.data == "create_form":
-        await state.set_state(FormActions.category_choosing)
-        await callback.message.edit_text(text="Выберете категорию заявки", reply_markup=await User_Keyboards.categories(state))
+    
+@cb_router.callback_query(FormActions.form_editing)
+async def form_editing(callback: types.CallbackQuery, state: FSMContext):
+    data: dict = await state.get_data()
+    try:
+        category_table = data["category_table"] 
+        chosen_category = data["chosen_category"] ; form_topic = chosen_category["Категории"]
+    except KeyError: pass
+    edit_object: str = callback.data.split("_")[0]
+    
+    match edit_object:
+        case "content":
+            await callback.message.edit_text(text=f"""Тема Вашего обращения: {chosen_category["Категории"]}\n\nСформируйте текстовое обращение по указанной Вами проблеме и отправьте его в чат с ботом""")        
+            await state.set_state(FormActions.text_resending)
+        case "mail":
+            await callback.message.edit_text(text="""Укажите электронную почту, на которую будет отправлен ответ специалиста.\n\nУбедительная просьба отправлять почту с указанием специального символа - '@'!""")
+            await state.set_state(FormActions.mail_resending)
+        case "program":
+            await callback.message.edit_text(text="""Укажите наименование Вашей программы обучения""")
+            await state.set_state(FormActions.program_resending)
+        case "group":
+            await callback.message.edit_text(text="""Укажите Вашу группу, если знаете номер""")
+            await state.set_state(FormActions.group_resending)
+        case "fio":
+            await callback.message.edit_text(text="""Укажите Ваше ФИО. Просим отправить ФИО одним сообщением""")
+            await state.set_state(FormActions.fio_resending)
+        case "category":
+            await state.set_state(FormActions.category_choosing)
+            await callback.message.edit_text(text="Выберете категорию заявки", reply_markup=await User_Keyboards.categories(state))
+        case "return":
+            await state.set_state(FormActions.form_claiming)
+            await form_displaying(data=data, state=state, message=callback.message)
 
 @cb_router.callback_query(FaqActions.surfing_faq)
 async def surfing_faq(callback: types.CallbackQuery, state: FSMContext):
@@ -114,7 +129,7 @@ async def surfing_faq(callback: types.CallbackQuery, state: FSMContext):
         nonlocal ITEMS_PER_PAGE
         
         await state.update_data(remaining_faq=remaining_faq[ITEMS_PER_PAGE:]) if reassign_remaining == True else ...
-        await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.surfing_faq(max_page=pages, exeption_raised=True, page_num=current_page))
+        await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.surfing_faq(max_page=pages, exeption_raised=True, page_num=current_page), parse_mode="HTML")
     
     if op_type == "faq_next":
         try:
@@ -146,7 +161,7 @@ async def define_processes(callback: types.CallbackQuery, state: FSMContext):
             await state.set_state(FormActions.category_choosing)
             await callback.message.edit_text(text="Выберете категорию заявки", reply_markup=await User_Keyboards.categories(state))
         case "info_block":
-            message = await callback.message.answer(text="Ваша ссылка на материалы блока 'Информация' - <<ссылка>>")
+            message = await callback.message.answer(text="Ваша ссылка на материалы блока 'Информация' - http://sechenov.lpt.digital/cabinet/info/?login=yes")
             await message_delition(message, time_sleep=1800) # сообщения-уведомления удаляются каждые 30 минут
         case "faq_block":
             full_faq, msg_text = parse_faq()
@@ -159,13 +174,13 @@ async def define_processes(callback: types.CallbackQuery, state: FSMContext):
                 nonlocal ITEMS_PER_PAGE
                 
                 try:
-                    await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.surfing_faq())
+                    await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.surfing_faq(), parse_mode="HTML")
                 except TelegramBadRequest:
                     await state.set_state(FaqActions.surfing_faq)
                     await state.update_data(full_faq=full_faq, pages=pages)
                     current_faq, msg_text = parse_faq(json_info=full_faq[:ITEMS_PER_PAGE])
                     await state.update_data(remaining_faq=full_faq[ITEMS_PER_PAGE:])
-                    await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.surfing_faq(exeption_raised=True))
+                    await callback.message.edit_text(text=msg_text, reply_markup=User_Keyboards.surfing_faq(exeption_raised=True), parse_mode="HTML")
                     
             await form_faq()
         case "feedback_block":

@@ -50,12 +50,8 @@ class User_Keyboards():
         btn_solved = InlineKeyboardButton(text="Проблема решена", callback_data="cat_state=solved")
         btn_unsolved = InlineKeyboardButton(text="Требуется консультация", callback_data="cat_state=unsolved")
         btn_menu_return = InlineKeyboardButton(text="Назад в главное меню", callback_data="main_menu")
-        btn_categories_return = InlineKeyboardButton(text="Изменить категорию", callback_data="create_form")
-        btn_mail_edit = InlineKeyboardButton(text="Изменить почту", callback_data="mail_edit")
-        btn_content_edit = InlineKeyboardButton(text="Изменить содержание", callback_data="content_edit")
-        btn_program_edit = InlineKeyboardButton(text="Изменить програму", callback_data="program_edit")
-        btn_group_edit = InlineKeyboardButton(text="Изменить группу", callback_data="group_edit")
-        btn_fio_edit = InlineKeyboardButton(text="Изменить ФИО", callback_data="fio_edit")
+        btn_edit_form = InlineKeyboardButton(text="Отредактировать заявку", callback_data="edit_form")
+        btn_attach_photo = InlineKeyboardButton(text="Прикрепить фото", callback_data="attach_photo")
         btn_send_form = InlineKeyboardButton(text="Отправить заявку", callback_data="send_form")
         btn_remove_form = InlineKeyboardButton(text="Отменить отправку", callback_data="main_menu")
         
@@ -63,9 +59,25 @@ class User_Keyboards():
             keyboard.add(btn_solved, btn_unsolved, btn_menu_return)
             keyboard.adjust(1, repeat=True)
         else:
-            keyboard.add(btn_send_form, btn_content_edit, btn_fio_edit, btn_program_edit, btn_group_edit, btn_mail_edit, btn_categories_return, btn_remove_form)
-            keyboard.adjust(2, repeat=True)
+            keyboard.add(btn_send_form, btn_attach_photo, btn_edit_form, btn_remove_form)
+            keyboard.adjust(1, repeat=True)
             
+        return keyboard.as_markup()
+    
+    def form_edit() -> InlineKeyboardMarkup:
+        keyboard = InlineKeyboardBuilder()
+        
+        btn_categories_return = InlineKeyboardButton(text="Изменить категорию", callback_data="category_edit")
+        btn_mail_edit = InlineKeyboardButton(text="Изменить почту", callback_data="mail_edit")
+        btn_content_edit = InlineKeyboardButton(text="Изменить содержание", callback_data="content_edit")
+        btn_program_edit = InlineKeyboardButton(text="Изменить програму", callback_data="program_edit")
+        btn_group_edit = InlineKeyboardButton(text="Изменить группу", callback_data="group_edit")
+        btn_fio_edit = InlineKeyboardButton(text="Изменить ФИО", callback_data="fio_edit")
+        btn_back_to_form = InlineKeyboardButton(text="Вернуться к заявке", callback_data="return_to_form")
+        
+        keyboard.add(btn_content_edit, btn_fio_edit, btn_program_edit, btn_group_edit, btn_mail_edit, btn_categories_return, btn_back_to_form)
+        keyboard.adjust(2, repeat=True)
+        
         return keyboard.as_markup()
     
     def backing_to_menu() -> InlineKeyboardMarkup:

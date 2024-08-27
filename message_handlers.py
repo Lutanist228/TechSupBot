@@ -8,8 +8,6 @@ from keyboards import *
 
 msg_router = Router()
 
-
-
 @msg_router.message(Command("start", ignore_mention=False))
 async def main_menu_call(message: types.Message, state: FSMContext):
     await state.clear()
@@ -49,7 +47,7 @@ async def text_recapture(message: types.Message, state: FSMContext):
         menu: types.CallbackQuery = data["menu"]
     except KeyError: pass
     
-    await form_displaying(data, menu, state, message)
+    await form_displaying(data=data, menu=menu, state=state, message=message)
     
 @msg_router.message(FormActions.fio_sending)
 async def fio_capture(message: types.Message, state: FSMContext):
@@ -70,7 +68,7 @@ async def fio_recapture(message: types.Message, state: FSMContext):
         menu: types.CallbackQuery = data["menu"]
     except KeyError: pass
     
-    await form_displaying(data, menu, state, message)
+    await form_displaying(data=data, menu=menu, state=state, message=message)
     
 @msg_router.message(FormActions.program_sending)
 async def program_capture(message: types.Message, state: FSMContext):
@@ -91,7 +89,7 @@ async def program_recapture(message: types.Message, state: FSMContext):
         menu: types.CallbackQuery = data["menu"]
     except KeyError: pass
     
-    await form_displaying(data, menu, state, message)
+    await form_displaying(data=data, menu=menu, state=state, message=message)
 
 @msg_router.message(FormActions.group_sending)
 async def group_capture(message: types.Message, state: FSMContext):
@@ -112,7 +110,7 @@ async def group_recapture(message: types.Message, state: FSMContext):
         menu: types.CallbackQuery = data["menu"]
     except KeyError: pass
     
-    await form_displaying(data, menu, state, message)
+    await form_displaying(data=data, menu=menu, state=state, message=message)
 
 @msg_router.message(FormActions.mail_resending, F.text.contains("@"))
 async def mail_recapture(message: types.Message, state: FSMContext):
@@ -120,16 +118,18 @@ async def mail_recapture(message: types.Message, state: FSMContext):
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
     
-    await form_displaying(data, menu, state, message)
+    await form_displaying(data=data, menu=menu, state=state, message=message)
 
 @msg_router.message(FormActions.mail_sending, F.text.contains("@"))
 async def mail_capture(message: types.Message, state: FSMContext):
     await state.update_data(printed_mail=message.text)
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
+    await state.update_data(menu=menu)
     
-    await form_displaying(data, menu, state, message)
+    await form_displaying(data=data, menu=menu, state=state, message=message)
         
 @msg_router.message(lambda x: x)
 async def spam_delete(message: types.Message):
     await message.delete()
+    

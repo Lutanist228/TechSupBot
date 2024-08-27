@@ -13,6 +13,7 @@ class FormActions(StatesGroup):
     group_sending = State()
     group_resending = State()
     form_claiming = State()
+    form_editing = State()
     category_choosing = State()
 
 class FaqActions(StatesGroup):

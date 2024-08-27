@@ -4,7 +4,6 @@ from aiogram.dispatcher.dispatcher import Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 import asyncio as asy
 import os
-import json
 
 from objects import MailSender
 
@@ -21,7 +20,7 @@ async def on_startup():
     print("Бот запущен.")    
     
 async def on_shutdown():
-    await mail_sender.close_connection()
+    await mail_sender.close_connection() 
     print('Бот выключен.')
 
 async def main():
