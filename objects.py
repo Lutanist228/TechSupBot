@@ -5,6 +5,7 @@ import imaplib
 from aiogram import types
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
 from email.header import Header
 import email
 from email.parser import Parser
@@ -15,6 +16,8 @@ from dotenv import load_dotenv
 import os
 from aiogram import Bot
 from aiogram import exceptions
+from aiogram.methods.get_file import GetFile
+from typing import Optional
 
 from keyboards import *
 from functions import *
@@ -49,12 +52,13 @@ class DataTypeError():
         
 class MailSender():
     
-    def __init__(self, sender: str, password: str, receiver: str, bot: Bot,  subject: str = None, letter_text: str = None) -> None:
+    def __init__(self, sender: str, password: str, receiver: str, bot: Bot,  attachements: list = None, subject: str = None, letter_text: str = None) -> None:
         self.sender = sender
         self.password = password 
         self.receiver = receiver 
         self.subject = subject
         self.letter_text = letter_text
+        self.attachements = attachements
         self.bot = bot
         self.port = None
         self.message = None
@@ -94,12 +98,22 @@ class MailSender():
         self.server.close()    
         print("Успешное отключение от почтового клиента.")
         
-    async def create_message(self) -> MIMEText:
+    async def create_message(self, state: FSMContext, user_message: types.Message) -> MIMEMultipart:
+        
+        async def file_manager(operation: str, email_message: MIMEText = None):
+            wrapper = await self.__managing_files(state=state, user_message=user_message)
+            await wrapper(operation, email_message)
 
-        message = (MIMEText(self.letter_text, "plain", "utf-8"))
+        message = MIMEMultipart()
+        # message = (MIMEText(self.letter_text, "plain", "utf-8"))
         message["From"] = self.sender
         message["To"] = self.receiver
-        message["Subject"] = Header(self.subject, "utf-8") # id телеграмма
+        message["Subject"] = Header(self.subject, "utf-8")
+        message.attach(MIMEText(self.letter_text, "plain", "utf-8"))
+            
+        await file_manager("save")
+        await file_manager("read", email_message=message)
+        await file_manager("delete")
         
         self.message = message
         return self
@@ -148,6 +162,39 @@ class MailSender():
         
         else:
             print(f"Успешное переподключение к серверу...")
+    
+    async def __managing_files(self, state: FSMContext, user_message: types.Message, destination: str = "files") -> Optional[MIMEMultipart]:
+        async def wrapper(operation: str, email_message: MIMEMultipart = None):
+            data: dict = await state.get_data()
+            media_group = data["media_group_msg"]
+            
+            if os.path.exists(f"{destination}/user_id#{user_message.from_user.id}"):
+                user_dir = f"{destination}/user_id#{user_message.from_user.id}"
+            else:
+                os.mkdir(f"{destination}/user_id#{user_message.from_user.id}")
+                user_dir = f"{destination}/user_id#{user_message.from_user.id}"
+            
+            match operation:
+                case "save":
+                    for num, msg in enumerate(media_group):
+                        msg: types.Message
+                        await self.bot.download(file=msg.photo[-1].file_id, destination=f"{user_dir}/file_{num + 1}.png")
+                case "read":
+                    part = MIMEBase('application', "octet-stream")
+                    
+                    for num in range(len(data["media_group_msg"])):
+                        with open(f"{user_dir}/file_{num + 1}.png", "rb") as photo:
+                            part.set_payload(photo.read())
+                            
+                        email.encoders.encode_base64(part)    
+                        part.add_header('Content-Disposition', f'attachment; filename=photo_{num + 1}')
+                        email_message.attach(part)
+                    
+                    return email_message
+                case "delete":
+                    for num in range(len(data["media_group_msg"])):
+                        os.remove(f"{user_dir}/file_{num + 1}.png")     
+        return wrapper              
               
 class MailParser():
     def __init__(self, mail_login: str, mail_password: str) -> None:
@@ -155,7 +202,7 @@ class MailParser():
         self.mail_password = mail_password 
         self.server = None   
         
-    def connect(self, port: int, timeout: int = 10) -> imaplib.IMAP4_SSL:
+    def connect(self, port: int, timeout: int = 10) -> imaplib.IMAP4_SSL:   
         try:
             server = imaplib.IMAP4_SSL('imap.yandex.com', port, timeout=timeout)
             server.login(self.mail_login, self.mail_password)

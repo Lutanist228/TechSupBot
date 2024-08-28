@@ -74,7 +74,7 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
         mail_sender.subject = form_topic
         mail_sender.letter_text = f"""ID пользователя: {callback.from_user.id}\nФИО пользователя: {data["user_fio"]}\nПочта пользователя: {data["printed_mail"]}\nПрограмма и группа пользователя: {data["user_program"]} / {data["user_group"]}\n\nСодержание: {data["printed_text"]}"""
         
-        await mail_sender.create_message()
+        await mail_sender.create_message(state, callback.message)
         await mail_sender.send_email(state)
         
         await state.clear()
@@ -89,7 +89,7 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
         
         await state.update_data(media_group_msg=[])
         await state.set_state(FormActions.photo_sending)
-        menu: types.CallbackQuery = await callback.message.edit_text(text="Отправьте скриншот(-ы) вашей проблемы. Вы можете прикрепить до 3-х фото к вашей заявке.\nДля завершения операции нажмите - 'Прикрепить фото'.\nДля отмены операции нажмите - 'Вернуться к заявке'", reply_markup=User_Keyboards.form_edit(True))
+        menu: types.CallbackQuery = await callback.message.edit_text(text="Отправьте скриншот(-ы) вашей проблемы. Вы можете прикрепить до 3-х фото к вашей заявке.\n\n<b>Просим Вас отправлять фотографии по одному, не объединяя их в группы и не присылая несколько фотографий одним сообщением.</b>\n\nДля завершения операции нажмите - 'Прикрепить фото'.\nДля отмены операции нажмите - 'Вернуться к заявке'", reply_markup=User_Keyboards.form_edit(True), parse_mode="HTML")
         await state.update_data(menu=menu)
     elif callback.data == "edit_form":
         await state.set_state(FormActions.form_editing)
