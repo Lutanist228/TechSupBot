@@ -42,7 +42,7 @@ async def text_capture(message: types.Message, state: FSMContext):
         mail_sender.subject = data["chosen_category"]
         mail_sender.letter_text = f"""ID пользователя: {message.from_user.id}\n\nСодержание: {data["printed_text"]}"""
         
-        await mail_sender.create_message()
+        await mail_sender.create_message(state, message)
         await mail_sender.send_email(state, message)
         await menu.edit_text(text="Здравствуйте, чем могу помочь?", reply_markup=User_Keyboards.main_menu())
         bot_message = await message.answer("Обратная связь успешно отправлена!")

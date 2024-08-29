@@ -5,6 +5,7 @@ import imaplib
 from aiogram import types
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 from email.mime.base import MIMEBase
 from email.header import Header
 import email
@@ -18,6 +19,7 @@ from aiogram import Bot
 from aiogram import exceptions
 from aiogram.methods.get_file import GetFile
 from typing import Optional
+from email import encoders
 
 from keyboards import *
 from functions import *
@@ -166,7 +168,10 @@ class MailSender():
     async def __managing_files(self, state: FSMContext, user_message: types.Message, destination: str = "files") -> Optional[MIMEMultipart]:
         async def wrapper(operation: str, email_message: MIMEMultipart = None):
             data: dict = await state.get_data()
-            media_group = data["media_group_msg"]
+            try:
+                media_group = data["media_group_msg"]
+            except KeyError:
+                return None
             
             if os.path.exists(f"{destination}/user_id#{user_message.from_user.id}"):
                 user_dir = f"{destination}/user_id#{user_message.from_user.id}"
@@ -180,16 +185,14 @@ class MailSender():
                         msg: types.Message
                         await self.bot.download(file=msg.photo[-1].file_id, destination=f"{user_dir}/file_{num + 1}.png")
                 case "read":
-                    part = MIMEBase('application', "octet-stream")
-                    
                     for num in range(len(data["media_group_msg"])):
                         with open(f"{user_dir}/file_{num + 1}.png", "rb") as photo:
-                            part.set_payload(photo.read())
+                            # part = MIMEBase('application', "octet-stream")
+                            # part.set_payload(photo.read())
+                            # part.add_header('Content-Disposition', f'attachment; filename=photo_{num + 1}')
+                            # encoders.encode_base64(part) 
+                            email_message.attach(MIMEImage(photo.read(), name=f"photo_{num + 1}"))
                             
-                        email.encoders.encode_base64(part)    
-                        part.add_header('Content-Disposition', f'attachment; filename=photo_{num + 1}')
-                        email_message.attach(part)
-                    
                     return email_message
                 case "delete":
                     for num in range(len(data["media_group_msg"])):
