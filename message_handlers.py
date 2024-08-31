@@ -3,6 +3,7 @@ from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.utils.media_group import MediaGroupBuilder 
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.types.input_media_photo import InputMediaPhoto
 
 from functions import *
 from states import *
@@ -15,8 +16,8 @@ msg_router = Router()
 async def main_menu_call(message: types.Message, state: FSMContext):
     from DataStorage import DataStorage
     data = await state.get_data()
+    DataStorage.erase_objects(message.from_user.id)
     
-    DataStorage.temp_data_2 = None
     try:
         [await elem.delete() for elem in data["media_group_msg"]]
     except KeyError: pass
@@ -27,6 +28,7 @@ async def main_menu_call(message: types.Message, state: FSMContext):
 @msg_router.message(FormActions.text_sending)
 async def text_capture(message: types.Message, state: FSMContext):
     from DataStorage import DataStorage
+    
     await state.update_data(printed_text=message.text)
     data: dict = await state.get_data()
     menu: types.CallbackQuery = data["menu"]
@@ -37,7 +39,7 @@ async def text_capture(message: types.Message, state: FSMContext):
         await state.set_state(FormActions.fio_sending)
         await message.delete()
     else:
-        mail_sender = DataStorage.temp_data_1
+        mail_sender = DataStorage.objects.get("mail_sender_obj")
         
         mail_sender.subject = data["chosen_category"]
         mail_sender.letter_text = f"""ID пользователя: {message.from_user.id}\n\nСодержание: {data["printed_text"]}"""
@@ -140,27 +142,30 @@ async def mail_capture(message: types.Message, state: FSMContext):
     
     await form_displaying(data=data, menu=menu, state=state, message=message)
         
-@msg_router.message(FormActions.photo_sending, F.photo)
+@msg_router.message(FormActions.photo_sending, (F.photo) | (F.document))
 @limit_checker
 async def photo_attaching(message: types.Message, state: FSMContext):
     from DataStorage import DataStorage
+    
     data: dict = await state.get_data()
     photo_id = message.photo[-1].file_id
+
     await message.delete()
     
     try:
-        DataStorage.temp_data_2.add_photo(photo_id)
+        media_group: MediaGroupBuilder = DataStorage.objects.get(f"media_group_obj#{message.from_user.id}")
+        media_group.add_photo(photo_id)
     except (KeyError, AttributeError):
         media_group = MediaGroupBuilder(caption="Фотографии, готовые к прикреплению")
         media_group.add_photo(photo_id)
-        DataStorage.temp_data_2 = media_group
+        DataStorage.objects.update([(f"media_group_obj#{message.from_user.id}", media_group)])
          
     try:
         [await elem.delete() for elem in data["media_group_msg"]]
-        media_group_msg = await bot.send_media_group(chat_id=message.from_user.id, media=DataStorage.temp_data_2.build())
+        media_group_msg = await bot.send_media_group(chat_id=message.from_user.id, media=media_group.build())
         await state.update_data(media_group_msg=media_group_msg)
     except (TelegramBadRequest, KeyError):
-        media_group_msg = await bot.send_media_group(chat_id=message.from_user.id, media=DataStorage.temp_data_2.build())
+        media_group_msg = await bot.send_media_group(chat_id=message.from_user.id, media=media_group.build())
         await state.update_data(media_group_msg=media_group_msg)
     
 @msg_router.message(lambda x: x)

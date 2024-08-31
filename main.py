@@ -16,7 +16,7 @@ async def on_startup():
     from DataStorage import DataStorage
     global mail_sender
     mail_sender, status = await MailSender(sender=os.getenv("BOT_MAIL"), bot=bot, receiver=os.getenv("SUPPORT_MAIL"),password=os.getenv("OUTER_PASSWORD")).connect(port=os.getenv("SMTP_PORT"))
-    DataStorage.temp_data_1 = mail_sender
+    DataStorage.objects.update([("mail_sender_obj", mail_sender)])
     print("Бот запущен.")    
     
 async def on_shutdown():

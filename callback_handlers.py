@@ -58,7 +58,7 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     from DataStorage import DataStorage
 
     data: dict = await state.get_data()
-    mail_sender = DataStorage.temp_data_1
+    mail_sender = DataStorage.objects.get("mail_sender_obj")
     
     try:
         category_table = data["category_table"] 
@@ -66,7 +66,7 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     except KeyError: pass
     
     if callback.data == "send_form":
-        DataStorage.temp_data_2 = None
+        DataStorage.erase_objects(callback.from_user.id)
         try:
             [await elem.delete() for elem in data["media_group_msg"]]
         except KeyError: pass
@@ -74,7 +74,7 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
         mail_sender.subject = form_topic
         mail_sender.letter_text = f"""ID пользователя: {callback.from_user.id}\nФИО пользователя: {data["user_fio"]}\nПочта пользователя: {data["printed_mail"]}\nПрограмма и группа пользователя: {data["user_program"]} / {data["user_group"]}\n\nСодержание: {data["printed_text"]}"""
         
-        await mail_sender.create_message(state, callback.message)
+        await mail_sender.create_message(state, callback)
         await mail_sender.send_email(state)
         
         await state.clear()
@@ -82,7 +82,7 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
         message = await callback.message.answer("Заявка успешно сформирована. Ожидайте ответ на указанный e-mail")
         await message_delition(message)
     elif callback.data == "attach_photo":
-        DataStorage.temp_data_2 = None
+        DataStorage.erase_objects(callback.from_user.id)
         try:
             [await elem.delete() for elem in data["media_group_msg"]]
         except KeyError: pass
@@ -95,7 +95,7 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
         await state.set_state(FormActions.form_editing)
         await callback.message.edit_text(text="Выберете, какую часть заявки необходимо отредактировать", reply_markup=User_Keyboards.form_edit())
     elif callback.data == "main_menu":
-        DataStorage.temp_data_2 = None
+        DataStorage.erase_objects(callback.from_user.id)
         try:
             [await elem.delete() for elem in data["media_group_msg"]]
         except KeyError: pass
@@ -107,7 +107,10 @@ async def form_claiming(callback: types.CallbackQuery, state: FSMContext):
     
 @cb_router.callback_query(FormActions.form_editing)
 async def form_editing(callback: types.CallbackQuery, state: FSMContext):
+    from DataStorage import DataStorage
+    
     data: dict = await state.get_data()
+    
     try:
         category_table = data["category_table"] 
         chosen_category = data["chosen_category"] ; form_topic = chosen_category["Категории"]
@@ -131,6 +134,10 @@ async def form_editing(callback: types.CallbackQuery, state: FSMContext):
             await callback.message.edit_text(text="""Укажите Ваше ФИО. Просим отправить ФИО одним сообщением""")
             await state.set_state(FormActions.fio_resending)
         case "category":
+            [await elem.delete() for elem in data["media_group_msg"]]
+            await state.update_data(media_group_msg=[])
+            DataStorage.erase_objects(callback.from_user.id)
+            
             await state.set_state(FormActions.category_choosing)
             await callback.message.edit_text(text="Выберете категорию заявки", reply_markup=await User_Keyboards.categories(state))
         case "return":
@@ -176,8 +183,8 @@ async def photo_operations(callback: types.CallbackQuery, state: FSMContext):
     
     if callback.data == "return_to_form":
         [await elem.delete() for elem in data["media_group_msg"]]
-        DataStorage.temp_data_2 = None
         await state.update_data(media_group_msg=[])
+        DataStorage.erase_objects(callback.from_user.id)
         
         await state.set_state(FormActions.form_claiming)
         await form_displaying(data=data, state=state, message=callback.message)

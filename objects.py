@@ -18,7 +18,7 @@ import os
 from aiogram import Bot
 from aiogram import exceptions
 from aiogram.methods.get_file import GetFile
-from typing import Optional
+from typing import Optional, Union
 from email import encoders
 
 from keyboards import *
@@ -165,7 +165,7 @@ class MailSender():
         else:
             print(f"Успешное переподключение к серверу...")
     
-    async def __managing_files(self, state: FSMContext, user_message: types.Message, destination: str = "files") -> Optional[MIMEMultipart]:
+    async def __managing_files(self, state: FSMContext, user_message: Optional[Union[types.CallbackQuery, types.Message]], destination: str = "files") -> Optional[MIMEMultipart]:
         async def wrapper(operation: str, email_message: MIMEMultipart = None):
             data: dict = await state.get_data()
             try:
@@ -187,10 +187,6 @@ class MailSender():
                 case "read":
                     for num in range(len(data["media_group_msg"])):
                         with open(f"{user_dir}/file_{num + 1}.png", "rb") as photo:
-                            # part = MIMEBase('application', "octet-stream")
-                            # part.set_payload(photo.read())
-                            # part.add_header('Content-Disposition', f'attachment; filename=photo_{num + 1}')
-                            # encoders.encode_base64(part) 
                             email_message.attach(MIMEImage(photo.read(), name=f"photo_{num + 1}"))
                             
                     return email_message

@@ -1,5 +1,4 @@
 import csv
-from config import *
 import asyncio as asy 
 from aiogram.fsm.context import FSMContext
 from aiogram import types
@@ -7,12 +6,12 @@ from aiogram import types
 from states import *
 from keyboards import *
 
-def create_csv(file_path: str) -> csv.excel:
-    with open(file_path, "w", encoding="utf-8", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerows(
-            categories
-        )
+# def create_csv(file_path: str) -> csv.excel:
+#     with open(file_path, "w", encoding="utf-8", newline="") as file:
+#         writer = csv.writer(file)
+#         writer.writerows(
+#             categories
+#         )
         
 async def message_delition(*args, time_sleep = 20):
         await asy.sleep(time_sleep)
@@ -77,6 +76,14 @@ def limit_checker(func):
         message: types.Message = args[0]
         
         try:
+            if message.document.file_id:
+                msg = await message.answer(text="Просим вас переотправить фотографию, но с выставленной опцией 'Compress the image'\\'Сжать изображение'")
+                await message.delete()
+                return await message_delition(msg, time_sleep=5)
+        except AttributeError:
+            pass
+
+        try:
             if len(data["media_group_msg"]) >= 3:
                 msg = await message.answer(text="Вы достигли лимита для прикрепления фотографий")
                 await message.delete()
@@ -87,3 +94,5 @@ def limit_checker(func):
             return await func(message, state)
         
     return wrapper
+
+
